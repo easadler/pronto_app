@@ -1,55 +1,220 @@
 /** @jsx React.DOM */
+var SetIntervalMixin = {
+  componentWillMount: function() {
+    this.intervals = [];
+  },
+  setInterval: function() {
+    this.intervals.push(setInterval.apply(null, arguments));
+  },
+  componentWillUnmount: function() {
+    this.intervals.map(clearInterval);
+  }
+};
 
-var DynamicSearch = React.createClass({
+var Circle = React.createClass({
+    mixins: [SetIntervalMixin], 
+    getDefaultProps: function() {
+        return {
+            r: 0,
+            fill: 'green',
+            cx: 0,
+            cy: 0,
+            opacity: 0.6
+        }
+    },
+    
+    getInitialState: function() {
+      return {
+        milliseconds: 0,
+        r: 0
+      };
+    },
+    
+    shouldComponentUpdate: function(nextProps) {
+      return this.props.r !== this.state.r;
+    },
+    
+    componentWillMount: function() {
+      console.log('will mount');
+    },
+    
+    componentWillReceiveProps: function(nextProps) {
+      this.setState({milliseconds: 0, r: this.props.r});
+    this.setState({fill: this.props.fill});
 
-  // sets initial state
-  getInitialState: function(){
-    return { searchString: '' };
+    },
+    
+    componentDidMount: function() {
+      this.setInterval(this.tick, 10);
+    },
+    
+    tick: function(start) {
+      this.setState({milliseconds: this.state.milliseconds + 10});
+    },
+    
+    render: function() {
+      var easyeasy = d3.ease('back-out');
+      var r = this.state.r + (this.props.r - this.state.r) * easyeasy(Math.min(1, this.state.milliseconds/1000));
+
+      var fill = this.state.fill
+        return (
+      <circle
+                cx = {this.props.cx}
+                cy = {this.props.cy}
+                r =  {r}
+                fill = {'green'}
+                opacity = {this.props.opacity}>
+           </circle>
+        );
+    },
+});
+
+var Path = React.createClass({ 
+    render: function() {
+      var d = this.props.d
+        return (
+      <path
+                d = {d}
+                fill = {'black'}>
+           </path>
+        );
+    },
+});
+
+var Hood = React.createClass({
+  getDefaultProps: function() {
+    return {
+      hoods: []
+    }
   },
 
-  // sets state, triggers render method
-  handleChange: function(event){
-    // grab value form input box
-    this.setState({searchString:event.target.value});
-    console.log("scope updated!")
+  shouldComponentUpdate: function(nextProps) {
+      return this.props.hoods !== nextProps.hoods;
   },
 
   render: function() {
+    var hoods = this.props.hoods;
 
-    var countries = this.props.items;
-    var searchString = this.state.searchString.trim().toLowerCase();
+    var pathGenerator = this.props.pathGenerator;
 
-    // filter countries list by value from input box
-    if(searchString.length > 0){
-      countries = countries.filter(function(country){
-        return country.name.toLowerCase().match( searchString );
-      });
-    }
+    var paths = hoods.map(function(hood,i) {
+      return (
+  <Path
+     d = {pathGenerator(hood)}
+      key = {i}/>
+      )
+    });
 
     return (
-      <div>
-        <input type="text" value={this.state.searchString} onChange={this.handleChange} placeholder="Search!" />
-        <ul>
-          { countries.map(function(country){ return <li>{country.name} </li> }) }
-        </ul>
-      </div>
-    )
+          <g>{paths}</g>
+    );
   }
+}); 
+
+
+var Terminal = React.createClass({
+  getDefaultProps: function() {
+    return {
+      terminals: []
+    }
+  },
+
+  shouldComponentUpdate: function(nextProps) {
+      return this.props.terminals !== nextProps.terminals;
+  },
+
+  render: function() {
+    var terminals = this.props.terminals;
+    var projection = this.props.projection;
+
+    var circles = terminals.map(function(terminal, i) {
+      var fill = 'green';
+      var size = +terminal.bikes_avail
+      var coord = [+terminal.long,+terminal.lat]
+      return (
+  <Circle
+      cx = {projection(coord)[0]}
+      cy = {projection(coord)[1]}
+      r =  {size}
+      fill = {fill}
+      opacity = {0.6}
+      key = {terminal.terminal}/>
+      )
+    });
+
+    return (
+          <g>{circles}</g>
+    );
+  }
+}); 
+
+
+
+var Map = React.createClass({
+    render: function() {
+        return (
+            <svg width={this.props.width} 
+                 height={this.props.height} >
+              {this.props.children}
+            </svg>
+        );
+    }
+});
+
+
+App = React.createClass({
+  getDefaultProps: function() {
+    return {
+      width: 960,
+      height: 700
+    };
+  },
+
+  getInitialState: function() {
+    return {
+      hoods: [],
+      terminals: [],
+    };
+  },
+
+  componentWillMount: function() {
+    var cmp = this;
+        var hoods = '{{hoods|safe}}';
+        cmp.setProps({
+          hoods: topojson.feature(hoods,hoods.objects.Seattle).features
+        });
+        cmp.setState({
+          terminals: '{{terminals|safe}}'
+        });
+  },
+
+
+  render: function() {
+    var cmp = this;
+
+    var svg = React.DOM.svg;
+
+  var projection = d3.geo.albers()
+      .scale( 450000 )
+      .rotate( [122.335167,0] )
+      .center( [0, 47.608013] )
+      .translate( [590/2,1000/2] );
+
+    var counties = this.state.counties
+    var terminals = this.state.terminals
+
+    var pathGenerator = d3.geo.path().projection(projection);
+
+    return (<Map  width={this.props.width} 
+                  height= {this.props.height}>
+              <Hood hoods = {this.props.hoods} pathGenerator = {pathGenerator}/>
+              <Terminal terminals = {this.state.terminals}
+                projection = {projection}/>
+            </Map>);
+}
 
 });
 
-// list of countries, defined with JavaScript object literals
-var countries = [
-  {"name": "Sweden"}, {"name": "China"}, {"name": "Peru"}, {"name": "Czech Republic"},
-  {"name": "Bolivia"}, {"name": "Latvia"}, {"name": "Samoa"}, {"name": "Armenia"},
-  {"name": "Greenland"}, {"name": "Cuba"}, {"name": "Western Sahara"}, {"name": "Ethiopia"},
-  {"name": "Malaysia"}, {"name": "Argentina"}, {"name": "Uganda"}, {"name": "Chile"},
-  {"name": "Aruba"}, {"name": "Japan"}, {"name": "Trinidad and Tobago"}, {"name": "Italy"},
-  {"name": "Cambodia"}, {"name": "Iceland"}, {"name": "Dominican Republic"}, {"name": "Turkey"},
-  {"name": "Spain"}, {"name": "Poland"}, {"name": "Haiti"}
-];
-
 React.render(
-  <DynamicSearch items={ countries } />,
-  document.getElementById('main')
-);
+  <App />,
+  document.getElementById('main'));
