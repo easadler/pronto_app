@@ -10,24 +10,28 @@ import apidata as ap
 
 app = Flask(__name__)
 
-
-#df_sc = ap.get_data()
-# get station data and merge with current data
-# df = pd.read_csv('project/static/map/2015_station_data.csv')
-# df = df.merge(df_sc, on = 'terminal' )
-# terminals =  df.to_dict('records')
-
-rf_d = joblib.load('project/static/pickles/demand pickle/d.pkl') 
-rf_s = joblib.load('project/static/pickles/supply pickle/s.pkl') 
-
-
-
-
-
-
 @app.route('/')
 def index():
-    return render_template('index.html', terminals = terminals)
+	# get bike counts
+	current_time, df_sc = ap.get_bikes()
+
+	# get data to pass to view
+	df_t = df.merge(df_sc, on = 'terminal' )
+	terminals =  df_t.to_dict('records')
+
+	# merge weather with stations 
+	df_weather = pd.DataFrame([data for _ in xrange(len(terminals))])
+	df_weather['terminal'] = df_t['terminal']
+
+	# get list of times
+	all_times = pd.date_range(current_time, periods=24, freq='H')
+	
+	#get list of datasets for each hour
+	data_list = ap.get_data(df_weather, current_time)
+
+	print data_list
+
+	return render_template('index.html', terminals = terminals)
 
 
 @app.route('/simulation/', methods=['POST'])
@@ -46,4 +50,10 @@ def simulation():
 
 
 if __name__ == '__main__':
-	app.run(debug=True)
+	df = pd.read_csv('project/static/map/2015_station_data.csv')
+	# rf_d = joblib.load('project/static/pickles/demand pickle/d.pkl') 
+	# rf_s = joblib.load('project/static/pickles/supply pickle/s.pkl') 
+
+	data = ap.get_weather()
+
+	app.run(host='0.0.0.0',debug=True)

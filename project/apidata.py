@@ -1,56 +1,56 @@
 import requests
 import numpy as np 
-import pandas as pd
+import pandas as pd 
 
-def get_data():
-    
-    def get_weather(year, month, day):
-        datetime = str(year) + str(month) + str(day)
-        key = 'b8eb1022d4717675'
-        place = 'WA/Seattle'
-        url = 'http://api.wunderground.com/api/' + key + '/history_' + datetime + '/q/' + place + '.json'
-        r = requests.get(url).json()
-        weather = r['history']['dailysummary'][0]
-        return weather
-        current_time, df_sc = get_bikes()
-        
-    def get_bikes():
-        bc = requests.get('https://secure.prontocycleshare.com/data/stations.json').json()
-        current_time = pd.to_datetime(bc['timestamp'],unit='ms')
+def get_weather():
+    key = 'b8eb1022d4717675'
+    place = 'WA/Seattle'
+    url = 'http://api.wunderground.com/api/' + key + '/forecast/q/' + place + '.json'
+    r = requests.get(url).json()
+    weather = r['forecast']['simpleforecast']['forecastday'][0]
 
-        station_counts = [[i['n'],float(i['ba'])]for i in bc['stations']]
-        df_sc = pd.DataFrame(station_counts, columns = ['terminal','bikes_avail'])
-
-        return current_time, df_sc
-    
-    # get important days 
-    current_time, df_sc = get_bikes()
-
-
-    hour = current_time.hour
-    dow = current_time.dayofweek
-    month = current_time.month
-    
-    weather = get_weather(current_time.year, month, current_time.day)
-    
     data = dict()
-    
-    data['Max_Humidity'] = weather['maxhumidity']
-    data['Max_Wind_Speed_MPH '] = weather['maxwspdm']
-    data['Min_Dewpoint_F'] = weather['mindewpti']
-    data['Max_Wind_Speed_MPH '] = weather['maxwspdi']
-    data['Mean_Humidity '] = weather['humidity']
-    data['Precipitation_In '] = weather['precipi']
-    data['Min_TemperatureF'] = weather['mintempi']
-    data['hour'] = hour
-    data['dayofweek'] = dow
-    data['month'] = month
-    
-    
-    df_d = pd.DataFrame([data for _ in xrange(len(df_sc))])
+    data['Min_TemperatureF'] = float(weather['low']['fahrenheit'])
+    data['Max_Humidity'] = float(weather['maxhumidity'])
+    data['Mean_Humidity '] = float(weather['avehumidity'])    
+    data['Max_Wind_Speed_MPH '] = float(weather['maxwind']['mph'])
+    data['Precipitation_In '] = float(weather['qpf_allday']['in'])
 
-    df_sc = df_sc.merge(df_d, left_index =True, right_index = True)
+
+    return data
     
-    return df_sc
+
+        
+def get_bikes():
+    bc = requests.get('https://secure.prontocycleshare.com/data/stations.json').json()
+    current_time = pd.to_datetime(bc['timestamp'],unit='ms')
+    station_counts = [[i['n'],float(i['ba'])]for i in bc['stations']]
+    df_sc = pd.DataFrame(station_counts, columns = ['terminal','bikes_avail'])
+
+    return current_time, df_sc
+
+
+def get_data(df_sc, current_time):
+    all_times = pd.date_range(current_time, periods=24, freq='H')
+    data_list = []
+
+    df_sc['hour'] = -1
+    df_sc['dayofweek'] = -1
+    df_sc['month'] = -1
+
+    df_sc = df_sc[['hour', 'terminal', 'Min_TemperatureF', 'Max_Humidity', 'Mean_Humidity ', 'Max_Wind_Speed_MPH ', 'Precipitation_In ', 'dayofweek', 'month']]
     
-    
+    for time in all_times:
+        df_temp = df_sc.copy()
+        hour = time.hour
+        dow = time.dayofweek
+        month = time.month
+        print df_temp
+        df_temp['hour'] = hour
+        df_temp['dayofweek'] = dow
+        df_temp['month'] = month
+        df_temp['hour'] = pd.cut(df_temp['hour'],[-0.1,6,11,15,24])
+        df_temp = pd.get_dummies(df_temp, columns = ['hour','terminal','dayofweek','month'])
+        
+        X = df_temp.values
+        data_list.append(X)
