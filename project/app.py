@@ -8,28 +8,47 @@ import json
 import cPickle as pickle
 import apidata as ap
 
+
+from apscheduler.scheduler import Scheduler
+
 app = Flask(__name__)
 
-@app.route('/')
-def index():
-	# get bike counts
-	current_time, df_sc = ap.get_bikes()
 
-	# get data to pass to view
-	df_t = df.merge(df_sc, on = 'terminal' )
-	terminals =  df_t.to_dict('records')
+cron = Scheduler(daemon=True)
+# Explicitly kick off the background thread
+cron.start()
 
-	# merge weather with stations 
-	df_weather = pd.DataFrame([data for _ in xrange(len(terminals))])
+
+@cron.interval_schedule(hours=1)
+def job_function():
+ 	# merge weather with stations 
+	df_weather = pd.DataFrame([data for _ in xrange(len(df))])
 	df_weather['terminal'] = df_t['terminal']
 
-	# get list of times
-	all_times = pd.date_range(current_time, periods=24, freq='H')
-	
 	#get list of datasets for each hour
 	data_list = ap.get_data(df_weather, current_time)
 
-	print data_list
+
+	demand = ap.predict(rf_d, data_list)
+	supply = ap.predict(rf_s, data_list)
+
+	global sim_data
+	sim_data = ap.totals(supply, demand, df_t)
+	
+
+
+
+@app.route('/')
+def index():
+	#get bike counts
+	current_time, df_sc = ap.get_bikes()
+
+	# get data to pass to view
+
+	df_t = df.merge(df_sc, on = 'terminal', how= 'inner' )
+	df_t['fill'] = df_t['bikes_avail']/df_t['dockcount']
+
+	terminals =  df_t.to_dict('records')
 
 	return render_template('index.html', terminals = terminals)
 
@@ -40,20 +59,21 @@ def simulation():
 	
 	hour=  int(data['hour'])
 
-	sim_data = []
-	d_temp = df.copy()
-	for _ in xrange(hour):
-		d_temp['bikes_avail'] = d_temp['bikes_avail']  + np.random.rand() * 4 
-		sim_data.append(d_temp.to_dict('records'))
-	return jsonify(response = (sim_data))
+	return jsonify(response = (sim_data[:hour]))
 
 
 
 if __name__ == '__main__':
-	df = pd.read_csv('project/static/map/2015_station_data.csv')
-	# rf_d = joblib.load('project/static/pickles/demand pickle/d.pkl') 
-	# rf_s = joblib.load('project/static/pickles/supply pickle/s.pkl') 
+
+	df = pd.read_csv('project/static/map/reduced_station_data.csv')
+	rf_d = joblib.load('project/static/pickles/demand pickle/d.pkl') 
+	rf_s = joblib.load('project/static/pickles/supply pickle/s.pkl') 
+
+	current_time, df_sc = ap.get_bikes()
+	df_t = df.merge(df_sc, on = 'terminal', how= 'inner' )
 
 	data = ap.get_weather()
+	
+	job_function()
 
 	app.run(host='0.0.0.0',debug=True)

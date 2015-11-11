@@ -19,3 +19,11 @@ ul{
   margin-left: 20px;
   text-align: left;
 }
+
+#info {
+  position: absolute;
+  left: 750px;
+  top: 50px;
+
+}
+

@@ -23,7 +23,7 @@ def get_weather():
         
 def get_bikes():
     bc = requests.get('https://secure.prontocycleshare.com/data/stations.json').json()
-    current_time = pd.to_datetime(bc['timestamp'],unit='ms')
+    current_time = pd.to_datetime(bc['timestamp'],unit='ms').tz_localize('UTC').tz_convert('US/Pacific')
     station_counts = [[i['n'],float(i['ba'])]for i in bc['stations']]
     df_sc = pd.DataFrame(station_counts, columns = ['terminal','bikes_avail'])
 
@@ -32,25 +32,65 @@ def get_bikes():
 
 def get_data(df_sc, current_time):
     all_times = pd.date_range(current_time, periods=24, freq='H')
+
     data_list = []
 
     df_sc['hour'] = -1
     df_sc['dayofweek'] = -1
     df_sc['month'] = -1
-
     df_sc = df_sc[['hour', 'terminal', 'Min_TemperatureF', 'Max_Humidity', 'Mean_Humidity ', 'Max_Wind_Speed_MPH ', 'Precipitation_In ', 'dayofweek', 'month']]
     
     for time in all_times:
         df_temp = df_sc.copy()
-        hour = time.hour
-        dow = time.dayofweek
-        month = time.month
-        print df_temp
-        df_temp['hour'] = hour
-        df_temp['dayofweek'] = dow
-        df_temp['month'] = month
+
+
+        df_temp['hour'] = time.hour
+        df_temp['dayofweek'] = time.dayofweek
+        df_temp['month'] = time.month
+        df_temp['month'] = pd.Categorical(df_temp['month'], categories=range(1,13))
+        df_temp['dayofweek'] = pd.Categorical(df_temp['dayofweek'], categories=range(7))
         df_temp['hour'] = pd.cut(df_temp['hour'],[-0.1,6,11,15,24])
         df_temp = pd.get_dummies(df_temp, columns = ['hour','terminal','dayofweek','month'])
-        
         X = df_temp.values
         data_list.append(X)
+
+    return data_list
+
+def predict(rf, data_list):
+    preds = []
+    for X in data_list:
+        preds.append(rf.predict(X))
+
+    return preds
+
+
+def totals(supply, demand, df_t):
+    d_temp = df_t.copy()
+    sim_data = []
+
+    def avg(d):
+        if d == 1:
+            return 1
+        elif d == 2:
+            return 2
+        elif d == 3:
+            return 3
+        elif d == 4:
+            return 4
+        else:
+            return 0
+
+    avg = np.vectorize(avg)
+
+    for s,d in zip(supply, demand):
+
+        d_temp['bikes_avail'] = d_temp['bikes_avail']  - avg(d) + avg(s)
+        d_temp['fill'] = d_temp['bikes_avail']/d_temp['dockcount']
+
+        sim_data.append(d_temp.to_dict('records'))
+
+    return sim_data
+
+
+
+
