@@ -1,20 +1,27 @@
 from flask import Flask, render_template, request, jsonify
-
+from sklearn.externals import joblib
 from bs4 import BeautifulSoup
 import requests
 import pandas as pd 
 import numpy as np 
 import json
+import cPickle as pickle
+import apidata as ap
 
 app = Flask(__name__)
 
-r = requests.get('https://secure.prontocycleshare.com/data/stations.json').json()
-station_counts = [[i['n'],float(i['ba'])]for i in r['stations']]
-df_sc = pd.DataFrame(station_counts, columns = ['terminal','bikes_avail'])
 
-df = pd.read_csv('project/static/map/2015_station_data.csv')
-df = df.merge(df_sc, on = 'terminal' )
-terminals =  df.to_dict('records')
+#df_sc = ap.get_data()
+# get station data and merge with current data
+# df = pd.read_csv('project/static/map/2015_station_data.csv')
+# df = df.merge(df_sc, on = 'terminal' )
+# terminals =  df.to_dict('records')
+
+rf_d = joblib.load('project/static/pickles/demand pickle/d.pkl') 
+rf_s = joblib.load('project/static/pickles/supply pickle/s.pkl') 
+
+
+
 
 
 
