@@ -50,7 +50,9 @@ def get_data(df_sc, current_time):
         df_temp['month'] = pd.Categorical(df_temp['month'], categories=range(1,13))
         df_temp['dayofweek'] = pd.Categorical(df_temp['dayofweek'], categories=range(7))
         df_temp['hour'] = pd.cut(df_temp['hour'],[-0.1,6,11,15,24])
+
         df_temp = pd.get_dummies(df_temp, columns = ['hour','terminal','dayofweek','month'])
+
         X = df_temp.values
         data_list.append(X)
     return data_list

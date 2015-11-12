@@ -19,6 +19,9 @@ cron.start()
 @cron.interval_schedule(minutes=30)
 def job_function():
  	# merge weather with stations 
+ 	global data
+	data = ap.get_weather()
+
 	df_weather = pd.DataFrame([data for _ in xrange(len(df))])
 	df_weather['terminal'] = df_t['terminal']
 
@@ -69,8 +72,6 @@ if __name__ == '__main__':
 
 	current_time, df_sc = ap.get_bikes()
 	df_t = df.merge(df_sc, on = 'terminal', how= 'inner' )
-
-	data = ap.get_weather()
 	
 	job_function()
 
