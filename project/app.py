@@ -1,13 +1,10 @@
 from flask import Flask, render_template, request, jsonify
 from sklearn.externals import joblib
-from bs4 import BeautifulSoup
 import requests
 import pandas as pd 
 import numpy as np 
 import json
-import cPickle as pickle
 import apidata as ap
-
 
 from apscheduler.scheduler import Scheduler
 

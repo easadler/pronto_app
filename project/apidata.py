@@ -82,19 +82,19 @@ def totals(supply, demand, df_t):
 
     def avg_s(d):
         if d == 1:
-            return 1.431767
+            return 1.433981
         elif d == 2:
-            return 4.299106
+            return 4.298727
         elif d == 3:
-            return 6.850962
+            return 6.803055
         elif d == 4:
-            return 11.3
+            return 12.15000
         else:
             return 0
 
     avg_s = np.vectorize(avg_s)
     avg_d = np.vectorize(avg_d)
-    
+
     for s,d in zip(supply, demand):
 
         d_temp['bikes_avail'] = d_temp['bikes_avail']  - avg_d(d) + avg_s(s)

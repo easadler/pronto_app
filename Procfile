@@ -1,1 +1,0 @@
-project: bash run.sh
