@@ -53,19 +53,16 @@ def get_data(df_sc, current_time):
         df_temp = pd.get_dummies(df_temp, columns = ['hour','terminal','dayofweek','month'])
         X = df_temp.values
         data_list.append(X)
-
     return data_list
 
 def predict(rf, data_list):
     preds = []
     for X in data_list:
         preds.append(rf.predict(X))
-
     return preds
 
 
 def totals(supply, demand, df_t):
-    d_temp = df_t.copy()
     sim_data = []
 
     def avg_d(d):
@@ -80,24 +77,25 @@ def totals(supply, demand, df_t):
         else:
             return 0
 
-    def avg_s(d):
-        if d == 1:
+    def avg_s(s):
+        if s == 1:
             return 1.433981
-        elif d == 2:
+        elif s == 2:
             return 4.298727
-        elif d == 3:
+        elif s == 3:
             return 6.803055
-        elif d == 4:
+        elif s == 4:
             return 12.15000
         else:
             return 0
 
-    avg_s = np.vectorize(avg_s)
-    avg_d = np.vectorize(avg_d)
+    avg_s = np.vectorize(avg_s, otypes=[np.float])
+    avg_d = np.vectorize(avg_d, otypes=[np.float])
 
     for s,d in zip(supply, demand):
+        d_temp = df_t.copy()
 
-        d_temp['bikes_avail'] = d_temp['bikes_avail']  - avg_d(d) + avg_s(s)
+        d_temp['bikes_avail'] = d_temp['bikes_avail'] - avg_d(d) + avg_s(s)
         d_temp['fill'] = d_temp['bikes_avail']/d_temp['dockcount']
 
         sim_data.append(d_temp.to_dict('records'))

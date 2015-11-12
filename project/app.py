@@ -63,9 +63,9 @@ def simulation():
 
 if __name__ == '__main__':
 
-	df = pd.read_csv('project/static/map/reduced_station_data.csv')
-	rf_d = joblib.load('project/static/pickles/demand pickle/d.pkl') 
-	rf_s = joblib.load('project/static/pickles/supply pickle/s.pkl') 
+	df = pd.read_csv('static/map/reduced_station_data.csv')
+	rf_d = joblib.load('static/pickles/demand pickle/d.pkl') 
+	rf_s = joblib.load('static/pickles/supply pickle/s.pkl') 
 
 	current_time, df_sc = ap.get_bikes()
 	df_t = df.merge(df_sc, on = 'terminal', how= 'inner' )

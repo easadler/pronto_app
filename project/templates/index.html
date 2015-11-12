@@ -175,7 +175,7 @@ var Terminal = React.createClass({
 
     var rScale = d3.scale.linear()
           .domain([0,26])
-           .range([2,15])
+           .range([2,20])
            .clamp(true)
 
     var circles = terminals.map(function(terminal, i) {
@@ -220,7 +220,7 @@ App = React.createClass({
   getDefaultProps: function() {
     return {
       width: 960,
-      height: 700
+      height: 700,
     };
   },
 
@@ -228,7 +228,8 @@ App = React.createClass({
     return {
       hoods: [],
       terminals: [],
-      time: ''
+      time: '',
+      original: ''
     };
   },
 
@@ -245,6 +246,9 @@ App = React.createClass({
         cmp.setState({
           terminals: {{terminals|safe}},
           time: {{time|safe}}
+        });
+        cmp.setState({
+          original: {{time|safe}}
         });
   },
 
