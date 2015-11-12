@@ -27,3 +27,16 @@ ul{
 
 }
 
+#time{
+  font-size: 40px;
+  position: absolute;
+  left: 80px;
+  top: 550px;
+}
+
+#station{
+  font-size: 80px;
+  position: absolute;
+  left: 600px;
+  top: 550px;
+}

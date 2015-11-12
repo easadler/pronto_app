@@ -51,7 +51,8 @@ var Circle = React.createClass({
             fill: 0.5,
             cx: 0,
             cy: 0,
-            opacity: 0.6
+            opacity: 0.9,
+            id: ''
         }
     },
     
@@ -59,16 +60,14 @@ var Circle = React.createClass({
       return {
         milliseconds: 0,
         r: 0,
-        fill: 0.5
+        fill: 0.5,
+        sw: 1,
+        s: 'silver'
       };
     },
     
     shouldComponentUpdate: function(nextProps) {
       return this.props.r !== this.state.r || this.props.fill !== this.state.fill;
-    },
-    
-    componentWillMount: function() {
-      console.log('will mount');
     },
     
     componentWillReceiveProps: function(nextProps) {
@@ -82,7 +81,11 @@ var Circle = React.createClass({
     tick: function(start) {
       this.setState({milliseconds: this.state.milliseconds + 10});
     },
-    
+    showStation: function(e){
+      $('#station').show().text(e.target.id).css('color', e.target.getAttribute('fill'))
+
+    },
+
     render: function() {
       var easyeasy = d3.ease('back-out');
       var r = this.state.r + (this.props.r - this.state.r) * easyeasy(Math.min(1, this.state.milliseconds/1000));
@@ -90,13 +93,18 @@ var Circle = React.createClass({
       var colorScale = this.props.colorScale
 
       var fill = colorScale(this.state.fill + (this.props.fill - this.state.fill) * easyeasy(Math.min(1, this.state.milliseconds/1000)));
+
         return (
-      <circle
+      <circle onMouseOver = {this.showStation}
                 cx = {this.props.cx}
                 cy = {this.props.cy}
                 r =  {r}
                 fill = {fill}
-                opacity = {this.props.opacity}>
+                id = {this.props.id}
+                opacity = {this.props.opacity}
+                stroke = {this.state.s}
+                stroke-width = {this.state.sw}
+                >
            </circle>
         );
     },
@@ -161,14 +169,14 @@ var Terminal = React.createClass({
     var projection = this.props.projection;
 
     var colorScale = d3.scale.linear()
-        .domain([-.1, .5, 1.1])
-        .range(["red", "green", "blue"])
+        .domain([0, .45,.55, 1])
+        .range(["red", "green","green", "blue"])
         .clamp(true)
 
     var rScale = d3.scale.linear()
-                      .domain([0,28])
-                       .range([2,20])
-                       .clamp(true)
+          .domain([0,26])
+           .range([2,15])
+           .clamp(true)
 
     var circles = terminals.map(function(terminal, i) {
 
@@ -181,8 +189,9 @@ var Terminal = React.createClass({
       cy = {projection(coord)[1]}
       r =  {rScale(size)}
       fill = {terminal.fill}
-      opacity = {0.8}
+      opacity = {.9}
       colorScale = {colorScale}
+      id = {terminal.terminal}
       key = {terminal.terminal}/>
       )
     });
@@ -219,6 +228,7 @@ App = React.createClass({
     return {
       hoods: [],
       terminals: [],
+      time: ''
     };
   },
 
@@ -233,12 +243,14 @@ App = React.createClass({
         });
       });
         cmp.setState({
-          terminals: {{terminals|safe}}
+          terminals: {{terminals|safe}},
+          time: {{time|safe}}
         });
   },
 
   simulate: function(){
     var cmp = this
+    $('#station').fadeOut(400)
     $.ajax({
         url: '/simulation/',
         data: {data: JSON.stringify({'hour': $('#hours option:selected').val()})},
@@ -250,9 +262,20 @@ App = React.createClass({
               cmp.setState({
                   terminals: response[i]
               });
-                i++;
-                if( i < howManyTimes ){
-                    setTimeout( f, 550 );
+
+              var time = cmp.state.time;
+              if (time.hour < 23){
+                time.hour++;
+              } else {
+                time.hour = 0;
+              }
+              cmp.setState({
+                  time: time
+              });
+
+              i++;
+              if( i < howManyTimes ){
+                  setTimeout( f, 550 );
                 }
             }
             f();  
@@ -297,24 +320,30 @@ App = React.createClass({
           <div id = 'info'>
              <h1>Pronto! Predicted</h1>
              <p>
-              Welcome to Pronto! Predicted, an app that predicts bike availability up to 24 hours into the future using the current bike availability and weather predictions from Wunderground.
+             Welcome to Pronto! Predicted, an app that predicts bike availability up to 24 hours into the future based on current bike availability data from Pronto’s server and weather forecasts from Wunderground.
              </p> 
              <p>
-              Each circle represents a Pronto terminal. The size cooresponds to the current number available bikesvand the color cooresponds to inventory, where red is <span style = {red}>low</span>, green is good <span style = {green}>green</span>, and blue is very <span style = {blue}>full</span>. 
+              Each circle represents a Pronto terminal. The size corresponds to the current number available bikes and the color corresponds to inventory, where red is  <span style = {red}>empty</span>, green is <span style = {green}>50%</span>, and blue is <span style = {blue}>full</span>. 
              </p>
              <p>
-                Select how many hours to look ahead and click 'Go!'.
+                Select the number hours to look ahead and click 'Go!'.
              </p>
              <p>
 
              </p>
-                <select id='hours'>
-                  {% for i in range(1,25) %}
-                    <option value = '{{i}}'>{{i}}</option>
-                  {% endfor %}        
-                </select>
-              <button id = 'go' onClick={this.simulate}>Go!</button>
+             <div className = 'row'>
+               <div className = "col-xs-3">
+                  <select id='hours' className ="form-control">
+                    {% for i in range(1,25) %}
+                      <option value = '{{i}}'>{{i}}</option>
+                    {% endfor %}        
+                  </select>
+              </div>
+              <button id = 'go' onClick={this.simulate} className= "btn btn-primary">Go!</button>
+            </div>
           </div>
+        <h1 id = 'time'>{this.state.time.hour}:{this.state.time.minute}:{this.state.time.second} </h1>
+        <h1 id = 'station'></h1>
         </div>)
 }
 

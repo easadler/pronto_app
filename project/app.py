@@ -19,7 +19,7 @@ cron = Scheduler(daemon=True)
 cron.start()
 
 
-@cron.interval_schedule(hours=1)
+@cron.interval_schedule(minutes=30)
 def job_function():
  	# merge weather with stations 
 	df_weather = pd.DataFrame([data for _ in xrange(len(df))])
@@ -43,6 +43,7 @@ def index():
 	#get bike counts
 	current_time, df_sc = ap.get_bikes()
 
+	time_dict = {'hour': current_time.hour, 'minute': current_time.strftime('%M'), 'second': current_time.strftime('%S')}
 	# get data to pass to view
 
 	df_t = df.merge(df_sc, on = 'terminal', how= 'inner' )
@@ -50,7 +51,7 @@ def index():
 
 	terminals =  df_t.to_dict('records')
 
-	return render_template('index.html', terminals = terminals)
+	return render_template('index.html', terminals = terminals, time = time_dict)
 
 
 @app.route('/simulation/', methods=['POST'])

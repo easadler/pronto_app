@@ -68,23 +68,36 @@ def totals(supply, demand, df_t):
     d_temp = df_t.copy()
     sim_data = []
 
-    def avg(d):
+    def avg_d(d):
         if d == 1:
-            return 1
+            return 1.431767
         elif d == 2:
-            return 2
+            return 4.299106
         elif d == 3:
-            return 3
+            return 6.850962
         elif d == 4:
-            return 4
+            return 12.680851
         else:
             return 0
 
-    avg = np.vectorize(avg)
+    def avg_s(d):
+        if d == 1:
+            return 1.431767
+        elif d == 2:
+            return 4.299106
+        elif d == 3:
+            return 6.850962
+        elif d == 4:
+            return 11.3
+        else:
+            return 0
 
+    avg_s = np.vectorize(avg_s)
+    avg_d = np.vectorize(avg_d)
+    
     for s,d in zip(supply, demand):
 
-        d_temp['bikes_avail'] = d_temp['bikes_avail']  - avg(d) + avg(s)
+        d_temp['bikes_avail'] = d_temp['bikes_avail']  - avg_d(d) + avg_s(s)
         d_temp['fill'] = d_temp['bikes_avail']/d_temp['dockcount']
 
         sim_data.append(d_temp.to_dict('records'))
